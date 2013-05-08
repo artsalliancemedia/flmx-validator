@@ -3,16 +3,31 @@
 	"version": "0.0.0",
 	"feeds": [
 		{
-			"name": "",
-			"endpoint": "<endpoint url>",
+			"name": "Example FLM-x Endpoint",
+			"endpoint": "https://example.com/flmx",
 			"username": "",
 			"password": "",
-			"next_try": "[1d|1h|1m]"
+			"next_try": "[1d|1h|1m]",
+			"failure_email": {
+				"to": ["flmx-failures@example.com"],
+				"cc": [],
+				"bcc": []
+			}
 		}
 	],
 	"validator": {
 		"endpoint": "http://flm.foxpico.com/validator",
 		"username": "",
 		"password": ""
+	},
+	"email": {
+		"host": "<SMTP host>",
+		"port": 25,
+		"ssl": {
+			"enabled": false,
+			"key": "<path to key file>",
+			"cert": "<path to cert file>"
+		},
+		"sender": "flmx-validator@example.com"
 	}
 }
