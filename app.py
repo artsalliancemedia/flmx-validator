@@ -47,6 +47,7 @@ class Validator(object):
                 feed.last_validated = datetime.now()
                 feed.validation_start_time = None
                 total_issues = int(response_json['total-issue-count'])
+
         return validation_finished, total_issues == 0, total_issues, response_json
 
 class Feed(object):
@@ -93,6 +94,7 @@ class JsonSettings(object):
             raise IOError('The specified json settings file does not exist: {0}'.format(json_path))
         json_data = load(json_file)
         json_file.close()
+
         return json_data
 
 def main():
@@ -124,6 +126,7 @@ def load_feeds(json_data):
     feeds = []
     for feed in feeds_data:
         feeds.append(Feed(**feed))
+
     return feeds
 
 if __name__ == '__main__':
