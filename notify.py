@@ -1,5 +1,11 @@
 import smtplib
 
+class NotifyError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
 class Emailer:
     def __init__(self, settings):
         # Don't open up a smtp connection if we're just running the tests.
@@ -19,8 +25,8 @@ class Emailer:
     def format(self, recipients, subject, body):
         message = u"From: {from_addr}\r\n".format(from_addr=self.sender)
 
-        if not set.intersection(set(recipients.keys()), set(['to', 'cc', 'bcc'])):
-            raise Exception("Must supply either a 'to', 'cc' or 'bcc' to send an email.")
+        if not isinstance(recipients, dict) or not set.intersection(set(recipients.keys()), set(['to', 'cc', 'bcc'])):
+            raise NotifyError("Must supply either a 'to', 'cc' or 'bcc' to send an email.")
 
         for cat in recipients:
             # First cast any strings passed in to arrays of strings.
