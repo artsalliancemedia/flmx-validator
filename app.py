@@ -31,7 +31,7 @@ class Validator(object):
         try:
             # We just assume this is going to timeout and move to polling the results endpoint
             requests.get(self.endpoint, auth = (self.username, self.password), params = payload, timeout = 1)
-        except requests.exceptions.Timeout: 
+        except requests.exceptions.Timeout:
             success, total_issues, response = self.poll_validator_results(feed, datetime.now())
             return success, total_issues, response
 
@@ -41,7 +41,7 @@ class Validator(object):
             "validation-type": "all-data",
             "results": feed.endpoint,
             "json": 1,
-            }   
+            }
         while (True):
             response = requests.get(self.endpoint, auth = (self.username, self.password), params = payload)
             if (response.status_code == 200):
@@ -52,7 +52,7 @@ class Validator(object):
                     return total_issues == 0, total_issues, response_json
                 else:
                     sleep(60)
-        
+
 class Feed(object):
     """Represents a Feed as stored in the json settings file"""
     def __init__(self, name, endpoint, username, password, raw_next_try, failure_email):
@@ -84,15 +84,15 @@ class Feed(object):
 class JsonSettings(object):
     def __init__(self, json_path):
         super(JsonSettings, self).__init__()
-        json_data = self.load_json_settings(json_path)
-        self.validator = self.load_validator(json_data)
-        self.feeds = self.load_feeds(json_data)
-        self.emailer = Emailer(json_data['email'])
+        self.json_data = self.load_json_settings(json_path)
 
-    def load_validator(self, json_data):
+    def load_emailer(self):
+        return Emailer(self.json_data['email'])
+
+    def load_validator(self):
         """Load a validator from json settings"""
         try:
-            validator_data = json_data['validator']
+            validator_data = self.json_data['validator']
             endpoint = validator_data['endpoint']
             username = validator_data['username']
             password = validator_data['password']
@@ -100,9 +100,9 @@ class JsonSettings(object):
         except KeyError as e:
             raise JsonSettingsError('{0} value is not present. Check your JSON settings.'.format(e))
 
-    def load_feeds(self, json_data):
+    def load_feeds(self):
         try:
-            feeds_data = json_data['feeds']
+            feeds_data = self.json_data['feeds']
             feeds = []
             for feed in feeds_data:
                 name = feed['name']
@@ -131,12 +131,15 @@ def main():
     else:
         settings_path = 'settings.json'
     settings = JsonSettings(settings_path)
+    validator = settings.load_validator()
+    feeds = settings.load_feeds()
+    emailer = settings.load_emailer()
     while (True):
-        for feed in settings.feeds:
+        for feed in feeds:
             if (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
-                success, total_issues, response_json = settings.validator.validate_feed(feed)
+                success, total_issues, response_json = validator.validate_feed(feed)
                 if success == False:
-                    settings.emailer.send(
+                    emailer.send(
                         feed.failure_email,
                         u'Validation Failed For {feed} [{endpoint}] ({total_issues} Issues)'.format(
                             feed = feed.name,
