@@ -125,7 +125,11 @@ class JsonSettings(object):
         return json_data
 
 def main():
-    settings = JsonSettings('settings.json')
+    if (len(argv) >= 2):
+        settings_path = argv[1]
+    else:
+        settings_path = 'settings.json'
+    settings = JsonSettings(settings_path)
     while (True):
         for feed in settings.feeds:
             if (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
