@@ -39,10 +39,10 @@ class Validator(object):
             "json": 1,
             }
         response = requests.get(self.endpoint, auth = (self.username, self.password), params = payload)
-        if (response.status_code == 200):
+        if response.status_code == 200:
             response_json = loads(response.text)
             feed.last_polled_validator = datetime.now()
-            if (datetime.fromtimestamp(response_json['test-time']) > feed.validation_start_time):
+            if datetime.fromtimestamp(response_json['test-time']) > feed.validation_start_time:
                 validation_finished = True
                 feed.last_validated = datetime.now()
                 feed.validation_start_time = None
@@ -64,11 +64,11 @@ class Feed(object):
         raw_next_try = raw_next_try
 
         result = match('^(\d+)([m|M|h|H|d|D])$', raw_next_try)
-        if (result):
+        if result:
             duration = int(result.group(1))
             period = result.group(2).lower()
 
-            if (duration == 0):
+            if duration == 0:
                 raise ValueError('Invalid next_try value provided. Check your JSON settings.')
             duration_types  = {"m": "minutes", "h": "hours", "d": "days"}
             delta_kwargs = {}
@@ -121,7 +121,7 @@ class JsonSettings(object):
         return json_data
 
 def main():
-    if (len(argv) >= 2):
+    if len(argv) >= 2:
         settings_path = argv[1]
     else:
         settings_path = 'settings.json'
@@ -131,9 +131,9 @@ def main():
     emailer = settings.load_emailer()
     while (True):
         for feed in feeds:
-            if (feed.validation_start_time is None and (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now())):
+            if feed.validation_start_time is None and (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
                 validator.start_feed_validation(feed)
-            elif (feed.validation_start_time is not None and (feed.last_polled_validator is None or feed.last_polled_validator < datetime.now() - timedelta(minutes = 1))):
+            elif feed.validation_start_time is not None and (feed.last_polled_validator is None or feed.last_polled_validator < datetime.now() - timedelta(minutes = 1)):
                 completed, success, total_issues, response_json = validator.poll_results(feed)
                 if completed and not success:
                     emailer.send(
