@@ -15,7 +15,7 @@ class Validator(object):
         self.username = username
         self.password = password
 
-    def start_feed_validation(self, feed):
+    def start(self, feed):
         payload = {
             "url": feed.endpoint,
             "username": feed.username,
