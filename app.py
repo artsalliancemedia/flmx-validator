@@ -35,7 +35,7 @@ class Validator(object):
             success, total_issues, response = self.poll_validator_results(feed, datetime.now())
             return success, total_issues, response
 
-    def poll_validator_results(self, feed, query_start_time):
+    def poll_results(self, feed, query_start_time):
         validator_finished = False
         payload = {
             "validation-type": "all-data",
