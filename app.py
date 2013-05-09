@@ -80,38 +80,14 @@ class Feed(object):
 class JsonSettings(object):
     def __init__(self, json_path):
         super(JsonSettings, self).__init__()
-        self.json_data = self.load_json_settings(json_path)
+        self.json_data = self.load(json_path)
         self.validate()
 
     def validate(self):
         with open("settings.schema.json", "r") as schema_file:
             validate(self.json_data, load(schema_file))
 
-    def load_emailer(self):
-        return Emailer(self.json_data['email'])
-
-    def load_validator(self):
-        """Load a validator from json settings"""
-        validator_data = self.json_data['validator']
-        endpoint = validator_data['endpoint']
-        username = validator_data['username']
-        password = validator_data['password']
-        return Validator(endpoint, username, password)
-
-    def load_feeds(self):
-        feeds_data = self.json_data['feeds']
-        feeds = []
-        for feed in feeds_data:
-            name = feed['name']
-            endpoint = feed['endpoint']
-            username = feed['username']
-            password = feed['password']
-            raw_next_try = feed['next_try']
-            failure_email = feed['failure_email']
-            feeds.append(Feed(name, endpoint, username, password, raw_next_try, failure_email))
-        return feeds
-
-    def load_json_settings(self, json_path):
+    def load(self, json_path):
         try:
             json_file = open(json_path)
         except IOError:
@@ -126,9 +102,9 @@ def main():
     else:
         settings_path = 'settings.json'
     settings = JsonSettings(settings_path)
-    validator = settings.load_validator()
-    feeds = settings.load_feeds()
-    emailer = settings.load_emailer()
+    validator = load_validator(settings.json_data)
+    feeds = load_feeds(settings.json_data)
+    emailer = load_emailer(settings.json_data)
     while (True):
         for feed in feeds:
             if feed.validation_start_time is None and (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
@@ -143,6 +119,30 @@ def main():
                             endpoint = feed.endpoint,
                             total_issues = total_issues),
                         response_json)
+
+def load_emailer(json_data):
+    return Emailer(json_data['email'])
+
+def load_validator(json_data):
+    """Load a validator from json settings"""
+    validator_data = json_data['validator']
+    endpoint = validator_data['endpoint']
+    username = validator_data['username']
+    password = validator_data['password']
+    return Validator(endpoint, username, password)
+
+def load_feeds(json_data):
+    feeds_data = json_data['feeds']
+    feeds = []
+    for feed in feeds_data:
+        name = feed['name']
+        endpoint = feed['endpoint']
+        username = feed['username']
+        password = feed['password']
+        raw_next_try = feed['next_try']
+        failure_email = feed['failure_email']
+        feeds.append(Feed(name, endpoint, username, password, raw_next_try, failure_email))
+    return feeds
 
 if __name__ == '__main__':
     main()
