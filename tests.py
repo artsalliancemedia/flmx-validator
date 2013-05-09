@@ -179,7 +179,8 @@ class JsonSettingsTests(unittest.TestCase):
 
     def test_settings_file_present_and_not_valid(self):
         # Test that a invalid json file cannot be loaded
-        self.assertRaises(JsonSettingsError, JsonSettings, self.invalid_settings_file_path)
+        settings = JsonSettings(self.invalid_settings_file_path)
+        self.assertRaises(JsonSettingsError, settings.load_validator)
 
 if __name__ == '__main__':
     unittest.main()
