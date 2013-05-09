@@ -81,12 +81,12 @@ class JsonSettingsTests(unittest.TestCase):
     invalid_settings_file_path = 'invalid_settings.json'
 
     def setUp(self):
-        with open(self.test_settings_file_path, 'w') as test_settings_file:    
+        with open(self.test_settings_file_path, 'w') as test_settings_file:
             dump(
                 {
                     "name": "flmx-validator",
                     "version": "0.0.0",
-                    "feeds": [      
+                    "feeds": [
                         {
                             "name": "flmv",
                             "endpoint": "http://flm.foxpico.com/FLM/",
@@ -129,7 +129,7 @@ class JsonSettingsTests(unittest.TestCase):
                 {
                     "name": "flmx-validator",
                     "version": "0.0.0",
-                    "feeds": [      
+                    "feeds": [
                         {
                             "name": "flmv",
                             "endpoint": "http://flm.foxpico.com/FLM/",
