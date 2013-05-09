@@ -1,5 +1,9 @@
 import unittest
 from notify import Emailer, NotifyError
+from datetime import timedelta
+from json import dump
+from app import Feed, JsonSettings, JsonSettingsError
+from os import remove
 
 class EmailerTests(unittest.TestCase):
     def setUp(self):
@@ -45,6 +49,137 @@ class EmailerTests(unittest.TestCase):
 
         expected_msg = u"From: flmx-validator@example.com\r\nCc: test-email1@example.com, test-email2@example.com\r\nTo: test-email@example.com\r\nSubject: This is the subject!\r\n\r\nThis is the body!"
         self.assertEqual(message, expected_msg)
+
+class FeedTests(unittest.TestCase):
+
+    def test_raw_next_try_minutes(self):
+        # Test that the feed correctly recognises a next_try value of 10m as being valid
+        f = Feed('name', 'endpoint', 'username', 'password', '10m', {})
+        self.assertEqual(f.next_try, timedelta(minutes = 10))
+
+    def test_raw_next_try_hours(self):
+        # Test that the feed correctly recognises a next_try value of 10h as being valid
+        f = Feed('name', 'endpoint', 'username', 'password', '10h', {})
+        self.assertEqual(f.next_try, timedelta(hours = 10))
+
+    def test_raw_next_try_days(self):
+        # Test that the feed correctly recognises a next_try value of 10d as being valid
+        f = Feed('name', 'endpoint', 'username', 'password', '10d', {})
+        self.assertEqual(f.next_try, timedelta(days = 10))
+
+    def test_raw_next_try_invalid_duration(self):
+        # Test that the feed correctly recognises a next_try value of 1.2m as being invalid
+        self.assertRaises(JsonSettingsError, Feed, 'name', 'endpoint', 'username', 'password', '1.2m', {})
+
+    def test_raw_next_try_invalid_period(self):
+        # Test that the feed correctly recognises a next_try value of 10s as being invalid
+        self.assertRaises(JsonSettingsError, Feed, 'name', 'endpoint', 'username', 'password', '10s', {})
+
+class JsonSettingsTests(unittest.TestCase):
+
+    test_settings_file_path = 'test_settings.json'
+    invalid_settings_file_path = 'invalid_settings.json'
+
+    def setUp(self):
+        with open(self.test_settings_file_path, 'w') as test_settings_file:    
+            dump(
+                {
+                    "name": "flmx-validator",
+                    "version": "0.0.0",
+                    "feeds": [      
+                        {
+                            "name": "flmv",
+                            "endpoint": "http://flm.foxpico.com/FLM/",
+                            "username": "isdcf",
+                            "password": "isdcf",
+                            "next_try": "1m",
+                            "failure_email": {
+                                "to": ["flmx-failures@example.com"],
+                                "cc": [],
+                                "bcc": []
+                            }
+                        }
+                    ],
+                    "validator": {
+                        "endpoint": "http://flm.foxpico.com/validator",
+                        "username": "isdcf",
+                        "password": "isdcf"
+                    },
+                    "email": {
+                        "test": 1,
+                        "host": "<SMTP host>",
+                        "port": 25,
+                        "ssl": {
+                            "enabled": False,
+                            "key": "<path to key file>",
+                            "cert": "<path to cert file>"
+                        },
+                        "sender": "flmx-validator@example.com"
+                    }
+                },
+                test_settings_file,
+                indent=4, 
+                separators=(',', ': '),
+                sort_keys=True
+            )
+
+        with open(self.invalid_settings_file_path, 'w') as invalid_settings_file:
+            # This json is missing an endpoint for the validator 
+            dump(
+                {
+                    "name": "flmx-validator",
+                    "version": "0.0.0",
+                    "feeds": [      
+                        {
+                            "name": "flmv",
+                            "endpoint": "http://flm.foxpico.com/FLM/",
+                            "username": "isdcf",
+                            "password": "isdcf",
+                            "next_try": "1m",
+                            "failure_email": {
+                                "to": ["flmx-failures@example.com"],
+                                "cc": [],
+                                "bcc": []
+                            }
+                        }
+                    ],
+                    "validator": {
+                        "username": "isdcf",
+                        "password": "isdcf"
+                    },
+                    "email": {
+                        "test": 1,
+                        "host": "<SMTP host>",
+                        "port": 25,
+                        "ssl": {
+                            "enabled": False,
+                            "key": "<path to key file>",
+                            "cert": "<path to cert file>"
+                        },
+                        "sender": "flmx-validator@example.com"
+                    }
+                },
+                invalid_settings_file,
+                indent=4, 
+                separators=(',', ': '),
+                sort_keys=True
+            )
+
+    def tearDown(self):
+        remove(self.test_settings_file_path)
+        remove(self.invalid_settings_file_path)
+
+    def test_settings_file_not_present(self):
+        # Test that an exception is thrown when attempting to load a file that isn't present
+        self.assertRaises(JsonSettingsError, JsonSettings, "this/file/is/not/here.json")
+
+    def test_settings_file_present_and_valid(self):
+        # Test that a valid json file can be loaded
+        JsonSettings(self.test_settings_file_path)
+
+    def test_settings_file_present_and_not_valid(self):
+        # Test that a invalid json file cannot be loaded
+        self.assertRaises(JsonSettingsError, JsonSettings, self.invalid_settings_file_path)
 
 if __name__ == '__main__':
     unittest.main()
