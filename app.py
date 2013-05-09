@@ -20,7 +20,7 @@ class Validator(object):
         self.username = username
         self.password = password
 
-    def validate_feed(self, feed):
+    def start_feed_validation(self, feed):
         payload = {
             "url": feed.endpoint,
             "username": feed.username,
@@ -32,32 +32,35 @@ class Validator(object):
             # We just assume this is going to timeout and move to polling the results endpoint
             requests.get(self.endpoint, auth = (self.username, self.password), params = payload, timeout = 1)
         except requests.exceptions.Timeout:
-            success, total_issues, response = self.poll_validator_results(feed, datetime.now())
-            return success, total_issues, response
+            feed.validation_start_time = datetime.now()
 
-    def poll_results(self, feed, query_start_time):
-        validator_finished = False
+    def poll_results(self, feed):
+        validation_finished = False
+        total_issues = 0
+        response_json = None
         payload = {
             "validation-type": "all-data",
             "results": feed.endpoint,
             "json": 1,
             }
-        while (True):
-            response = requests.get(self.endpoint, auth = (self.username, self.password), params = payload)
-            if (response.status_code == 200):
-                response_json = loads(response.text)
-                if (datetime.fromtimestamp(response_json['test-time']) > query_start_time):
-                    feed.last_validated = datetime.now()
-                    total_issues = int(response_json['total-issue-count'])
-                    return total_issues == 0, total_issues, response_json
-                else:
-                    sleep(60)
+        response = requests.get(self.endpoint, auth = (self.username, self.password), params = payload)
+        if (response.status_code == 200):
+            response_json = loads(response.text)
+            feed.last_polled_validator = datetime.now()
+            if (datetime.fromtimestamp(response_json['test-time']) > feed.validation_start_time):
+                validation_finished = True
+                feed.last_validated = datetime.now()
+                feed.validation_start_time = None
+                total_issues = int(response_json['total-issue-count'])
+        return validation_finished, total_issues == 0, total_issues, response_json
 
 class Feed(object):
     """Represents a Feed as stored in the json settings file"""
     def __init__(self, name, endpoint, username, password, raw_next_try, failure_email):
         super(Feed, self).__init__()
         self.last_validated = None
+        self.validation_start_time = None
+        self.last_polled_validator = None
         self.name = name
         self.endpoint = endpoint
         self.username = username
@@ -69,7 +72,7 @@ class Feed(object):
         if (result):
             duration = int(result.group(1))
             period = result.group(2).lower()
-            
+
             if (duration == 0):
                 raise JsonSettingsError('Invalid next_try value provided. Check your JSON settings.')
             if (period == 'm'):
@@ -136,9 +139,11 @@ def main():
     emailer = settings.load_emailer()
     while (True):
         for feed in feeds:
-            if (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
-                success, total_issues, response_json = validator.validate_feed(feed)
-                if success == False:
+            if (feed.validation_start_time is None and (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now())):
+                validator.start_feed_validation(feed)
+            elif (feed.validation_start_time is not None and (feed.last_polled_validator is None or feed.last_polled_validator < datetime.now() - timedelta(minutes = 1))):
+                completed, success, total_issues, response_json = validator.poll_results(feed)
+                if completed and not success:
                     emailer.send(
                         feed.failure_email,
                         u'Validation Failed For {feed} [{endpoint}] ({total_issues} Issues)'.format(
