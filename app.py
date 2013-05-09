@@ -1,16 +1,11 @@
 from datetime import timedelta, datetime
 from notify import Emailer
 from json import loads, load
+from jsonschema import validate
 from re import match
 import requests
 from sys import argv, exit
 from time import sleep
-
-class JsonSettingsError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
 
 class Validator(object):
     """Represents a Validator as stored in the json settings file"""
@@ -74,54 +69,53 @@ class Feed(object):
             period = result.group(2).lower()
 
             if (duration == 0):
-                raise JsonSettingsError('Invalid next_try value provided. Check your JSON settings.')
+                raise ValueError('Invalid next_try value provided. Check your JSON settings.')
             duration_types  = {"m": "minutes", "h": "hours", "d": "days"}
             delta_kwargs = {}
             delta_kwargs[duration_types[period]] = duration
             self.next_try = timedelta(**delta_kwargs)
         else:
-            raise JsonSettingsError('Invalid next_try value provided. Check your JSON settings.')
+            raise ValueError('Invalid next_try value provided. Check your JSON settings.')
 
 class JsonSettings(object):
     def __init__(self, json_path):
         super(JsonSettings, self).__init__()
         self.json_data = self.load_json_settings(json_path)
+        self.validate_json()
+
+    def validate_json(self):
+        with open("settings.schema.json", "r") as schema_file:
+            validate(self.json_data, load(schema_file))
 
     def load_emailer(self):
         return Emailer(self.json_data['email'])
 
     def load_validator(self):
         """Load a validator from json settings"""
-        try:
-            validator_data = self.json_data['validator']
-            endpoint = validator_data['endpoint']
-            username = validator_data['username']
-            password = validator_data['password']
-            return Validator(endpoint, username, password)
-        except KeyError as e:
-            raise JsonSettingsError('{0} value is not present. Check your JSON settings.'.format(e))
+        validator_data = self.json_data['validator']
+        endpoint = validator_data['endpoint']
+        username = validator_data['username']
+        password = validator_data['password']
+        return Validator(endpoint, username, password)
 
     def load_feeds(self):
-        try:
-            feeds_data = self.json_data['feeds']
-            feeds = []
-            for feed in feeds_data:
-                name = feed['name']
-                endpoint = feed['endpoint']
-                username = feed['username']
-                password = feed['password']
-                raw_next_try = feed['next_try']
-                failure_email = feed['failure_email']
-                feeds.append(Feed(name, endpoint, username, password, raw_next_try, failure_email))
-            return feeds
-        except KeyError as e:
-            raise JsonSettingsError('{0} value is not present. Check your JSON settings.'.format(e))
+        feeds_data = self.json_data['feeds']
+        feeds = []
+        for feed in feeds_data:
+            name = feed['name']
+            endpoint = feed['endpoint']
+            username = feed['username']
+            password = feed['password']
+            raw_next_try = feed['next_try']
+            failure_email = feed['failure_email']
+            feeds.append(Feed(name, endpoint, username, password, raw_next_try, failure_email))
+        return feeds
 
     def load_json_settings(self, json_path):
         try:
             json_file = open(json_path)
         except IOError:
-            raise JsonSettingsError('The specified json settings file does not exist: {0}'.format(json_path))
+            raise IOError('The specified json settings file does not exist: {0}'.format(json_path))
         json_data = load(json_file)
         json_file.close()
         return json_data

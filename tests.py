@@ -2,7 +2,8 @@ import unittest
 from notify import Emailer, NotifyError
 from datetime import timedelta
 from json import dump
-from app import Feed, JsonSettings, JsonSettingsError
+from jsonschema import ValidationError
+from app import Feed, JsonSettings
 from os import remove
 
 class EmailerTests(unittest.TestCase):
@@ -69,11 +70,11 @@ class FeedTests(unittest.TestCase):
 
     def test_raw_next_try_invalid_duration(self):
         # Test that the feed correctly recognises a next_try value of 1.2m as being invalid
-        self.assertRaises(JsonSettingsError, Feed, 'name', 'endpoint', 'username', 'password', '1.2m', {})
+        self.assertRaises(ValueError, Feed, 'name', 'endpoint', 'username', 'password', '1.2m', {})
 
     def test_raw_next_try_invalid_period(self):
         # Test that the feed correctly recognises a next_try value of 10s as being invalid
-        self.assertRaises(JsonSettingsError, Feed, 'name', 'endpoint', 'username', 'password', '10s', {})
+        self.assertRaises(ValueError, Feed, 'name', 'endpoint', 'username', 'password', '10s', {})
 
 class JsonSettingsTests(unittest.TestCase):
 
@@ -94,9 +95,7 @@ class JsonSettingsTests(unittest.TestCase):
                             "password": "isdcf",
                             "next_try": "1m",
                             "failure_email": {
-                                "to": ["flmx-failures@example.com"],
-                                "cc": [],
-                                "bcc": []
+                                "to": ["flmx-failures@example.com"]
                             }
                         }
                     ],
@@ -106,7 +105,6 @@ class JsonSettingsTests(unittest.TestCase):
                         "password": "isdcf"
                     },
                     "email": {
-                        "test": 1,
                         "host": "<SMTP host>",
                         "port": 25,
                         "ssl": {
@@ -138,8 +136,6 @@ class JsonSettingsTests(unittest.TestCase):
                             "next_try": "1m",
                             "failure_email": {
                                 "to": ["flmx-failures@example.com"],
-                                "cc": [],
-                                "bcc": []
                             }
                         }
                     ],
@@ -148,7 +144,6 @@ class JsonSettingsTests(unittest.TestCase):
                         "password": "isdcf"
                     },
                     "email": {
-                        "test": 1,
                         "host": "<SMTP host>",
                         "port": 25,
                         "ssl": {
@@ -171,7 +166,7 @@ class JsonSettingsTests(unittest.TestCase):
 
     def test_settings_file_not_present(self):
         # Test that an exception is thrown when attempting to load a file that isn't present
-        self.assertRaises(JsonSettingsError, JsonSettings, "this/file/is/not/here.json")
+        self.assertRaises(IOError, JsonSettings, "this/file/is/not/here.json")
 
     def test_settings_file_present_and_valid(self):
         # Test that a valid json file can be loaded
@@ -179,8 +174,7 @@ class JsonSettingsTests(unittest.TestCase):
 
     def test_settings_file_present_and_not_valid(self):
         # Test that a invalid json file cannot be loaded
-        settings = JsonSettings(self.invalid_settings_file_path)
-        self.assertRaises(JsonSettingsError, settings.load_validator)
+        self.assertRaises(ValidationError, JsonSettings, self.invalid_settings_file_path)
 
 if __name__ == '__main__':
     unittest.main()
