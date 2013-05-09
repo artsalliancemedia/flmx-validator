@@ -75,12 +75,10 @@ class Feed(object):
 
             if (duration == 0):
                 raise JsonSettingsError('Invalid next_try value provided. Check your JSON settings.')
-            if (period == 'm'):
-                self.next_try = timedelta(minutes = duration)
-            elif (period == 'h'):
-                self.next_try = timedelta(hours = duration)
-            elif (period == 'd'):
-                self.next_try = timedelta(days = duration)
+            duration_types  = {"m": "minutes", "h": "hours", "d": "days"}
+            delta_kwargs = {}
+            delta_kwargs[duration_types[period]] = duration
+            self.next_try = timedelta(**delta_kwargs)
         else:
             raise JsonSettingsError('Invalid next_try value provided. Check your JSON settings.')
 
