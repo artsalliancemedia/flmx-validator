@@ -81,9 +81,9 @@ class JsonSettings(object):
     def __init__(self, json_path):
         super(JsonSettings, self).__init__()
         self.json_data = self.load_json_settings(json_path)
-        self.validate_json()
+        self.validate()
 
-    def validate_json(self):
+    def validate(self):
         with open("settings.schema.json", "r") as schema_file:
             validate(self.json_data, load(schema_file))
 
