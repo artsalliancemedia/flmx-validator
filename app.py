@@ -32,8 +32,8 @@ class Validator(object):
             # We just assume this is going to timeout and move to polling the results endpoint
             requests.get(self.endpoint, auth = (self.username, self.password), params = payload, timeout = 1)
         except requests.exceptions.Timeout: 
-            success, response = self.poll_validator_results(feed, datetime.now())
-            return success, response
+            success, total_issues, response = self.poll_validator_results(feed, datetime.now())
+            return success, total_issues, response
 
     def poll_validator_results(self, feed, query_start_time):
         validator_finished = False
@@ -48,7 +48,8 @@ class Validator(object):
                 response_json = loads(response.text)
                 if (datetime.fromtimestamp(response_json['test-time']) > query_start_time):
                     feed.last_validated = datetime.now()
-                    return int(response_json['total-issue-count']) == 0, response_json
+                    total_issues = int(response_json['total-issue-count'])
+                    return total_issues == 0, total_issues, response_json
                 else:
                     sleep(60)
         
@@ -133,9 +134,15 @@ def main():
     while (True):
         for feed in settings.feeds:
             if (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
-                success, response_json = settings.validator.validate_feed(feed)
+                success, total_issues, response_json = settings.validator.validate_feed(feed)
                 if success == False:
-                    emailer.send(feed.failure_email, u'Validation Failed For {feed} [{endpoint}]'.format(feed = feed.name, endpoint = feed.endpoint), response_json)
+                    settings.emailer.send(
+                        feed.failure_email,
+                        u'Validation Failed For {feed} [{endpoint}] ({total_issues} Issues)'.format(
+                            feed = feed.name,
+                            endpoint = feed.endpoint,
+                            total_issues = total_issues),
+                        response_json)
 
 if __name__ == '__main__':
     main()
