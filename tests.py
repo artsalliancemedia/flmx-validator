@@ -1,10 +1,10 @@
 import unittest
 from notify import Emailer, NotifyError
 from datetime import timedelta
-from json import dump
+from json import dump, load
 from jsonschema import ValidationError
-from app import Feed, JsonSettings
-from os import remove
+from app import Feed, JsonSettings, write_log_entry, LoggerError
+from os import remove, path
 
 class EmailerTests(unittest.TestCase):
     def setUp(self):
@@ -175,6 +175,85 @@ class JsonSettingsTests(unittest.TestCase):
     def test_settings_file_present_and_not_valid(self):
         # Test that a invalid json file cannot be loaded
         self.assertRaises(ValidationError, JsonSettings, self.invalid_settings_file_path)
+
+class LoggerTests(unittest.TestCase):
+
+    def setUp(self):
+        self.test_log_file_path = 'test_log.json'
+        self.invalid_log_file_path = 'invalid_log.json'
+        self.new_log_file_path = 'new_log.json'
+        with open(self.test_log_file_path, 'w') as test_log_file:
+            dump(
+            {
+                "entries": [
+                    {
+                        "level": "info",
+                        "message": "Settings loaded from settings.json",
+                        "timestamp": "2013-05-10T10:52:25.580000"
+                    },
+                    {
+                        "level": "info",
+                        "message": "Validator at endpoint http://flm.foxpico.com/validator initialised",
+                        "timestamp": "2013-05-10T10:52:25.581000"
+                    }
+                ]
+            },
+            test_log_file,
+            indent=4, 
+            separators=(',', ': '),
+            sort_keys=True
+            )
+
+        with open(self.invalid_log_file_path, 'w') as invalid_log_file:
+            # This json is missing a level for the second entry 
+            dump(
+            {
+                "entries": [
+                    {
+                        "level": "info",
+                        "message": "Settings loaded from settings.json",
+                        "timestamp": "2013-05-10T10:52:25.580000"
+                    },
+                    {
+                        "message": "Validator at endpoint http://flm.foxpico.com/validator initialised",
+                        "timestamp": "2013-05-10T10:52:25.581000"
+                    }
+                ]
+            },
+            invalid_log_file,
+            indent=4, 
+            separators=(',', ': '),
+            sort_keys=True
+            )
+
+    def test_create_new_log(self):
+        if path.isfile(self.new_log_file_path):
+            remove(self.test_log_file_path)
+        write_log_entry("test message", "debug", log_file_path = self.new_log_file_path)
+        with open(self.new_log_file_path, 'r') as test_log_file:
+            log = load(test_log_file)
+            self.assertEqual(len(log['entries']), 1)
+
+    def test_cannot_write_to_invalid_log(self):
+        self.assertRaises(LoggerError, write_log_entry, "test message", "info", log_file_path = self.invalid_log_file_path)
+
+    def test_write_invalid_entry(self):
+        self.assertRaises(LoggerError, write_log_entry, "test message", "foobar", log_file_path = self.test_log_file_path)
+        with open(self.test_log_file_path, 'r') as test_log_file:
+            log = load(test_log_file)
+            self.assertEqual(len(log['entries']), 2)
+
+    def test_write_valid_entry(self):
+        write_log_entry("test message", "debug", log_file_path = self.test_log_file_path)
+        with open(self.test_log_file_path, 'r') as test_log_file:
+            log = load(test_log_file)
+            self.assertEqual(len(log['entries']), 3)
+
+    def tearDown(self):
+        remove(self.test_log_file_path)
+        remove(self.invalid_log_file_path)
+        if path.isfile(self.new_log_file_path):
+            remove(self.new_log_file_path)
 
 if __name__ == '__main__':
     unittest.main()
