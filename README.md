@@ -2,15 +2,11 @@
 
 Takes a list of [FLM-x](http://flm.foxpico.com/) endpoints and goes through each validating each site in turn sending you a digest failure email periodically.
 
-### Installation Requirements
+### Installation
 
-* Python 2.6.x
+Python 2.6.x is required, pip is useful or look in the requirements.txt to grab the dependencies.
 
-Python Modules:
-* Requests 1.2.x
-* JSON Schema 1.3.x
-
-These should get you up to speed.
+`pip -r requirements.txt`
 
 ### Next Steps
 
