@@ -51,11 +51,13 @@ class Validator(object):
         write_log_entry("Polling validation results for {feedname} [{endpoint}] from {validator}".format(feedname = feed.name, endpoint = feed.endpoint, validator = self.endpoint), "info")
         response = requests.get(self.endpoint, auth = (self.username, self.password), params = payload)
         if response.status_code == 200:
-            validation_finished, total_issues, response_json = handle_results_response(feed, response)
+            validation_finished, total_issues, response_json = self.handle_results_response(feed, response)
 
         return validation_finished, total_issues == 0, total_issues, response_json
 
     def handle_results_response(self, feed, response):
+        validation_finished = False
+        total_issues = 0
         response_json = loads(response.text)
         feed.last_polled_validator = datetime.now()
         if datetime.fromtimestamp(response_json['test-time']) > feed.validation_start_time:
@@ -167,7 +169,7 @@ def main():
             for feed in feeds:
                 # If feed is not currently being validated, and it was last validated longer than [next_try] ago, start validation.
                 if feed.validation_start_time is None and (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
-                    validator.start_feed_validation(feed)
+                    validator.start(feed)
                 # Else if validation is running and we haven't polled the validator for results for at least a minute, poll.
                 elif feed.validation_start_time is not None and (feed.last_polled_validator is None or feed.last_polled_validator < datetime.now() - timedelta(minutes = 1)):
                     completed, success, total_issues, response_json = validator.poll_results(feed)
