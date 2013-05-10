@@ -45,14 +45,16 @@ class Validator(object):
         write_log_entry("Polling validation results for {feedname} [{endpoint}] from {validator}".format(feedname = feed.name, endpoint = feed.endpoint, validator = self.endpoint), "info")
         response = requests.get(self.endpoint, auth = (self.username, self.password), params = payload)
         if response.status_code == 200:
-            validation_finished, total_issues, response_json = self.handle_results_response(feed, response)
+            validation_finished, total_issues, response_json = self.handle_results_response(feed, response.text)
 
         return validation_finished, total_issues == 0, total_issues, response_json
 
     def handle_results_response(self, feed, response):
         validation_finished = False
         total_issues = 0
-        response_json = loads(response.text)
+        response_json = loads(response)
+        with open("results.schema.json", "r") as schema_file:
+            validate(response_json, load(schema_file))
         feed.last_polled_validator = datetime.now()
         if datetime.fromtimestamp(response_json['test-time']) > feed.validation_start_time:
             write_log_entry("Validation completed for {feedname} [{endpoint}]".format(feedname = feed.name, endpoint = feed.endpoint), "info")

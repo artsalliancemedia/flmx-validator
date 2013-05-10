@@ -1,0 +1,41 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "FLMx Validator Settings",
+    "description": "Settings for FLMx Validator application",
+    "type": "object",
+    "properties": {
+        "test-time": {
+            "type": "integer"
+        },
+        "validation-results": {
+            "type": "object",
+            "properties":{
+                "warnings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "total-issue-count": {
+            "type": "integer"
+        },
+        "validation-type": {
+            "type": "string"
+        },
+        "url": {
+            "type": "string"
+        },
+        "test-duration": {
+            "type": "integer"
+        }
+    },
+    "required": ["test-time", "validation-type", "total-issue-count", "url", "test-duration"]
+}

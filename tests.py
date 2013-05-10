@@ -1,9 +1,10 @@
 import unittest
 from notify import Emailer, NotifyError
-from datetime import timedelta
-from json import dump, load
+from datetime import timedelta, datetime
+import time
+from json import dump, load, dumps
 from jsonschema import ValidationError
-from app import Feed, JsonSettings
+from app import Feed, JsonSettings, Validator
 from os import remove, path
 
 class EmailerTests(unittest.TestCase):
@@ -175,6 +176,80 @@ class JsonSettingsTests(unittest.TestCase):
     def test_settings_file_present_and_not_valid(self):
         # Test that a invalid json file cannot be loaded
         self.assertRaises(ValidationError, JsonSettings, self.invalid_settings_file_path)
+
+class ValidatorTests(unittest.TestCase):
+    success_json = {
+       "test-time" : 0,
+       "validation-results" : {
+          "warnings" : [],
+          "errors" : []
+       },
+       "total-issue-count" : 0,
+       "validation-type" : "all-data",
+       "url" : "http://redacted/FLM/",
+       "test-duration" : 7
+    }
+    failure_json = {
+        "test-time" : 0,
+        "validation-results" : {
+            "warnings" : [
+                "a warning",
+                "another warning"
+            ],
+            "errors" : [
+                "an error"
+            ]
+        },
+       "total-issue-count" : 3,
+       "validation-type" : "all-data",
+       "url" : "http://redacted/FLM/",
+       "test-duration" : 7
+    }
+    invalid_json = {
+        "test-time" : 0,
+        "validation-results" : {
+            "warnings" : [
+                "a warning",
+                "another warning"
+            ],
+            "errors" : [
+                "an error"
+            ]
+        },
+       "validation-type" : "all-data",
+       "url" : "http://redacted/FLM/",
+       "test-duration" : 7
+    }
+    validator = Validator("endpoint", "username", "password")
+
+    def test_process_not_finished(self):
+        feed = Feed('name', 'endpoint', 'username', 'password', '10m', {})
+        self.success_json["test-time"] = int(time.time()) - 5000
+        feed.validation_start_time = datetime.now()
+        validation_finished, total_issues, response_json = self.validator.handle_results_response(feed, dumps(self.success_json))
+        self.assertEqual(validation_finished, False)
+
+    def test_process_success_response(self):
+        feed = Feed('name', 'endpoint', 'username', 'password', '10m', {})
+        feed.validation_start_time = datetime.now() - timedelta(minutes=10)
+        self.success_json["test-time"] = int(time.time())
+        validation_finished, total_issues, response_json = self.validator.handle_results_response(feed, dumps(self.success_json))
+        self.assertEqual(validation_finished, True)
+        self.assertEqual(total_issues, 0)
+
+    def test_process_failure_response(self):
+        feed = Feed('name', 'endpoint', 'username', 'password', '10m', {})
+        feed.validation_start_time = datetime.now() - timedelta(minutes=10)
+        self.failure_json["test-time"] = int(time.time())
+        validation_finished, total_issues, response_json = self.validator.handle_results_response(feed, dumps(self.failure_json))
+        self.assertEqual(validation_finished, True)
+        self.assertEqual(total_issues, 3)
+
+    def test_process_invalid_response(self):
+        feed = Feed('name', 'endpoint', 'username', 'password', '10m', {})
+        feed.validation_start_time = datetime.now() - timedelta(minutes=10)
+        self.invalid_json["test-time"] = int(time.time())
+        self.assertRaises(ValidationError, self.validator.handle_results_response, feed, dumps(self.invalid_json))
 
 if __name__ == '__main__':
     unittest.main()
