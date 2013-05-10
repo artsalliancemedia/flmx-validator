@@ -98,20 +98,26 @@ class JsonSettings(object):
         return json_data
 
 def main():
+    # Load json settings, either from command line argument or default location.
     if len(argv) >= 2:
         settings_path = argv[1]
     else:
         settings_path = 'settings.json'
     settings = JsonSettings(settings_path)
+    # Setup validator, emailer and feeds.
     validator = Validator(**settings.json_data['validator'])
     feeds = load_feeds(settings.json_data)
     emailer = Emailer(settings.json_data['email'])
+    # Start validation loop.
     while (True):
         for feed in feeds:
+            # If feed is not currently being validated, and it was last validated longer than [next_try] ago, start validation.
             if feed.validation_start_time is None and (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
                 validator.start_feed_validation(feed)
+            # Else if validation is running and we haven't polled the validator for results for at least a minute, poll.
             elif feed.validation_start_time is not None and (feed.last_polled_validator is None or feed.last_polled_validator < datetime.now() - timedelta(minutes = 1)):
                 completed, success, total_issues, response_json = validator.poll_results(feed)
+                # If the process has completed and the result was a failure, send an email notification.
                 if completed and not success:
                     emailer.send(
                         feed.failure_email,
