@@ -1,5 +1,5 @@
 from os import path
-from traceback import format_exc
+from traceback import print_exc
 from datetime import timedelta, datetime
 from notify import Emailer
 from json import loads, load, dump
@@ -9,12 +9,6 @@ import requests
 from sys import argv, exit
 from time import sleep
 
-class LoggerError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
-
 class Validator(object):
     """Represents a Validator as stored in the json settings file"""
     def __init__(self, endpoint, username, password):
@@ -22,7 +16,7 @@ class Validator(object):
         self.endpoint = endpoint
         self.username = username
         self.password = password
-        write_log_entry("Validator at endpoint {0} initialised".format(self.endpoint), "debug")
+        write_log_entry("Validator at endpoint {0} initialised".format(self.endpoint), "info")
 
     def start(self, feed):
         payload = {
@@ -95,14 +89,14 @@ class Feed(object):
             self.next_try = timedelta(**delta_kwargs)
         else:
             raise ValueError('Invalid next_try value provided. Valid format is [delta][m|h|d] (i.e "10m", "3h", "2d")')
-        write_log_entry("Feed at endpoint {0} initialised".format(self.endpoint), "debug")
+        write_log_entry("Feed at endpoint {0} initialised".format(self.endpoint), "info")
 
 class JsonSettings(object):
     def __init__(self, json_path):
         super(JsonSettings, self).__init__()
         self.json_data = self.load(json_path)
         self.validate()
-        write_log_entry("Settings loaded from {0}".format(json_path), "debug")
+        write_log_entry("Settings loaded from {0}".format(json_path), "info")
 
     def validate(self):
         with open("settings.schema.json", "r") as schema_file:
@@ -118,39 +112,12 @@ class JsonSettings(object):
 
         return json_data
 
-def write_log_entry(message, level, stack_trace = None, log_file_path = "log.json"):
-    entry = {
-        "timestamp": datetime.now().isoformat(),
-        "level": level,
-        "message": message
-    }
-    if stack_trace is not None:
-        entry["stacktrace"] = stack_trace
-    try:
-        # If file exists, load json from file, validate and append new log entry.
-        if path.isfile(log_file_path):
-            with open(log_file_path, 'r') as json_file:
-                json_log = load(json_file)
-                # Validate existing log. If this fails, we cannot safely store new log entries.
-                with open("log.schema.json", "r") as schema_file:
-                    validate(json_log, load(schema_file))
-                json_log['entries'].append(entry)
-        # Else create a new json log and store the entry.
-        else:
-                json_log = { "entries" : [ entry ] }
-        # Validate updated log.
-        with open("log.schema.json", "r") as schema_file:
-            validate(json_log, load(schema_file))
-        # Write either the updated or new log back to disk.
-        with open(log_file_path, 'w') as json_file:
-            dump(
-                json_log,
-                json_file,
-                indent=4,
-                separators=(',', ': '),
-                sort_keys=True)
-    except Exception as e:
-        raise LoggerError("Error writing to log file: {0}".format(e))
+def write_log_entry(message, level):
+    print "{timestamp} - [{level}] - {message}".format(
+        timestamp = datetime.now().isoformat(),
+        level = level,
+        message = message
+        )
 
 def main():
     try:
@@ -183,14 +150,11 @@ def main():
                                 endpoint = feed.endpoint,
                                 total_issues = total_issues),
                             response_json)
-    except LoggerError as le:
-        message = "Logging exception occured: {0}\n\nThe application will now exit.".format(e)
-        print message
-        exit()
     except Exception as e:
-        message = "Fatal exception occured: {0}\n\nThe application will now exit.".format(e)
-        print message
-        write_log_entry(message, "error", stack_trace = format_exc())
+        message = "Unhandled exception occured: {0}".format(e)
+        write_log_entry(message, "error")
+        print_exc()
+        print "Closing application."
         exit()
 
 if __name__ == '__main__':
