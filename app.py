@@ -124,26 +124,26 @@ def main():
         else:
             settings_path = 'settings.json'
         settings = JsonSettings(settings_path)
-        write_log_entry("Settings loaded from {0}".format(json_path), "info")
+        write_log_entry("Settings loaded from {0}".format(settings_path), "info")
         # Setup validator, emailer and feeds.
         validator = Validator(**settings.json_data['validator'])
-        write_log_entry("Validator at endpoint {0} initialised".format(self.endpoint), "info")
+        write_log_entry("Validator at endpoint {0} initialised".format(validator.endpoint), "info")
         feeds = []
         for feed in settings.json_data['feeds']:
             f = Feed(**feed)
             feeds.append(f)
-            write_log_entry("Feed at endpoint {0} initialised".format(self.endpoint), "info")
+            write_log_entry("Feed at endpoint {0} initialised".format(f.endpoint), "info")
         emailer = Emailer(settings.json_data['email'])
         # Start validation loop.
         while (True):
             for feed in feeds:
                 # If feed is not currently being validated, and it was last validated longer than [next_try] ago, start validation.
                 if feed.validation_start_time is None and (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
-                    write_log_entry("Sending validation request for {feedname} [{endpoint}] to {validator}".format(feedname = feed.name, endpoint = feed.endpoint, validator = self.endpoint), "info")
+                    write_log_entry("Sending validation request for {feedname} [{endpoint}] to {validator}".format(feedname = feed.name, endpoint = feed.endpoint, validator = validator.endpoint), "info")
                     validator.start(feed)
                 # Else if validation is running and we haven't polled the validator for results for at least a minute, poll.
                 elif feed.validation_start_time is not None and (feed.last_polled_validator is None or feed.last_polled_validator < datetime.now() - timedelta(minutes = 1)):
-                    write_log_entry("Polling validation results for {feedname} [{endpoint}] from {validator}".format(feedname = feed.name, endpoint = feed.endpoint, validator = self.endpoint), "info")
+                    write_log_entry("Polling validation results for {feedname} [{endpoint}] from {validator}".format(feedname = feed.name, endpoint = feed.endpoint, validator = validator.endpoint), "info")
                     completed, success, total_issues, response_json = validator.poll_results(feed)
                     # If the process has completed and the result was a failure, send an email notification.
                     if completed:
@@ -157,6 +157,7 @@ def main():
                                     endpoint = feed.endpoint,
                                     total_issues = total_issues),
                                 response_json)
+            sleep(60)
     except Exception as e:
         message = "Unhandled exception occured: {0}".format(e)
         write_log_entry(message, "error")
