@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "FLMx Validator Settings",
-    "description": "Settings for FLMx Validator application",
+    "title": "FLM validator Results",
+    "description": "JSON results provided by FLM Validator",
     "type": "object",
     "properties": {
         "test-time": {
