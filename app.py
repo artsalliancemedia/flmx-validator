@@ -93,14 +93,14 @@ class Feed(object):
             self.next_try = timedelta(**delta_kwargs)
         else:
             raise ValueError('Invalid next_try value provided. Valid format is [delta][m|h|d] (i.e "10m", "3h", "2d")')
-        write_log_entry("Feed at endpoint {0} initialised".format(self.endpoint), "info")
+        write_log_entry("Feed at endpoint {0} initialised".format(self.endpoint), "debug")
 
 class JsonSettings(object):
     def __init__(self, json_path):
         super(JsonSettings, self).__init__()
         self.json_data = self.load(json_path)
         self.validate()
-        write_log_entry("Settings loaded from {0}".format(json_path), "info")
+        write_log_entry("Settings loaded from {0}".format(json_path), "debug")
 
     def validate(self):
         with open("settings.schema.json", "r") as schema_file:
@@ -116,7 +116,7 @@ class JsonSettings(object):
 
         return json_data
 
-def write_log_entry(message, level, stack_trace = None, log_file_path = "log.json"):    
+def write_log_entry(message, level, stack_trace = None, log_file_path = "log.json"):
     entry = {
         "timestamp": datetime.now().isoformat(),
         "level": level,
@@ -160,7 +160,7 @@ def main():
         settings = JsonSettings(settings_path)
         # Setup validator, emailer and feeds.
         validator = Validator(**settings.json_data['validator'])
-        feeds = load_feeds(settings.json_data)
+        feeds = [Feed(**feed) for feed in settings.json_data['feeds']]
         emailer = Emailer(settings.json_data['email'])
         # Start validation loop.
         while (True):
@@ -190,14 +190,6 @@ def main():
         print message
         write_log_entry(message, "error", stack_trace = format_exc())
         exit()
-
-def load_feeds(json_data):
-    feeds_data = json_data['feeds']
-    feeds = []
-    for feed in feeds_data:
-        feeds.append(Feed(**feed))
-
-    return feeds
 
 if __name__ == '__main__':
     main()
