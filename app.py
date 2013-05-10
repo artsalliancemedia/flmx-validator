@@ -69,13 +69,13 @@ class Feed(object):
             period = result.group(2).lower()
 
             if duration == 0:
-                raise ValueError('Invalid next_try value provided. Check your JSON settings.')
+                raise ValueError('Invalid next_try value provided. Valid format is [delta][m|h|d] (i.e "10m", "3h", "2d")')
             duration_types  = {"m": "minutes", "h": "hours", "d": "days"}
             delta_kwargs = {}
             delta_kwargs[duration_types[period]] = duration
             self.next_try = timedelta(**delta_kwargs)
         else:
-            raise ValueError('Invalid next_try value provided. Check your JSON settings.')
+            raise ValueError('Invalid next_try value provided. Valid format is [delta][m|h|d] (i.e "10m", "3h", "2d")')
 
 class JsonSettings(object):
     def __init__(self, json_path):
