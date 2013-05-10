@@ -1,3 +1,4 @@
+VERSION = "1.0.0"
 from os import path
 from traceback import print_exc
 from datetime import timedelta, datetime
