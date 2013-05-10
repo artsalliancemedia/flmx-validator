@@ -3,7 +3,7 @@ from os import path
 from traceback import print_exc
 from datetime import timedelta, datetime
 from notify import Emailer
-from json import loads, load, dump
+from json import loads, load, dump, dumps
 from jsonschema import validate
 from re import match
 import requests
@@ -152,11 +152,12 @@ def main():
                             write_log_entry("Validation for {feedname} [{endpoint}] resulted in errors, sending email to {addresses}".format(feedname = feed.name, endpoint = feed.endpoint, addresses = feed.failure_email), "info")
                             emailer.send(
                                 feed.failure_email,
-                                u'Validation Failed For {feed} [{endpoint}] ({total_issues} Issues)'.format(
+                                u'Validation Failed For {feed} [{endpoint}] ({total_issues} {issues})'.format(
                                     feed = feed.name,
                                     endpoint = feed.endpoint,
-                                    total_issues = total_issues),
-                                response_json)
+                                    total_issues = total_issues,
+                                    issues = total_issues > 1 and "Issues" or "Issue"),
+                                dumps(response_json, indent=4, separators=(',', ': '), sort_keys=True))
             sleep(60)
     except Exception as e:
         message = "Unhandled exception occured: {0}".format(e)
