@@ -86,8 +86,6 @@ class JsonSettingsTests(unittest.TestCase):
         with open(self.test_settings_file_path, 'w') as test_settings_file:
             dump(
                 {
-                    "name": "flmx-validator",
-                    "version": "0.0.0",
                     "feeds": [
                         {
                             "name": "flmv",
@@ -126,8 +124,6 @@ class JsonSettingsTests(unittest.TestCase):
             # This json is missing an endpoint for the validator 
             dump(
                 {
-                    "name": "flmx-validator",
-                    "version": "0.0.0",
                     "feeds": [
                         {
                             "name": "flmv",
