@@ -8,6 +8,7 @@ Takes a list of [FLM-x](http://flm.foxpico.com/) endpoints and goes through each
 
 Python Modules:
 * Requests 1.2.x
+* JSON Schema 1.3.x
 
 These should get you up to speed.
 
@@ -17,3 +18,7 @@ Take a copy of `settings-template.json`, name it `settings.json` and fill out th
 
 To start the app run:
 `python app.py`
+
+### Tests
+
+They use `unittest` so should be installed if you have python, to run them the command you need is: `python tests.py`
