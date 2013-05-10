@@ -17,7 +17,6 @@ class Validator(object):
         self.endpoint = endpoint
         self.username = username
         self.password = password
-        write_log_entry("Validator at endpoint {0} initialised".format(self.endpoint), "info")
 
     def start(self, feed):
         payload = {
@@ -28,7 +27,6 @@ class Validator(object):
             "validation-type": "all-data",
             }
         try:
-            write_log_entry("Sending validation request for {feedname} [{endpoint}] to {validator}".format(feedname = feed.name, endpoint = feed.endpoint, validator = self.endpoint), "info")
             # We just assume this is going to timeout and move to polling the results endpoint
             requests.get(self.endpoint, auth = (self.username, self.password), params = payload, timeout = 1)
         except requests.exceptions.Timeout:
@@ -43,7 +41,6 @@ class Validator(object):
             "results": feed.endpoint,
             "json": 1,
             }
-        write_log_entry("Polling validation results for {feedname} [{endpoint}] from {validator}".format(feedname = feed.name, endpoint = feed.endpoint, validator = self.endpoint), "info")
         response = requests.get(self.endpoint, auth = (self.username, self.password), params = payload)
         if response.status_code == 200:
             validation_finished, total_issues, response_json = self.handle_results_response(feed, response.text)
@@ -58,7 +55,6 @@ class Validator(object):
             validate(response_json, load(schema_file))
         feed.last_polled_validator = datetime.now()
         if datetime.fromtimestamp(response_json['test-time']) > feed.validation_start_time:
-            write_log_entry("Validation completed for {feedname} [{endpoint}]".format(feedname = feed.name, endpoint = feed.endpoint), "info")
             validation_finished = True
             feed.last_validated = datetime.now()
             feed.validation_start_time = None
@@ -92,14 +88,12 @@ class Feed(object):
             self.next_try = timedelta(**delta_kwargs)
         else:
             raise ValueError('Invalid next_try value provided. Valid format is [delta][m|h|d] (i.e "10m", "3h", "2d")')
-        write_log_entry("Feed at endpoint {0} initialised".format(self.endpoint), "info")
 
 class JsonSettings(object):
     def __init__(self, json_path):
         super(JsonSettings, self).__init__()
         self.json_data = self.load(json_path)
         self.validate()
-        write_log_entry("Settings loaded from {0}".format(json_path), "info")
 
     def validate(self):
         with open("settings.schema.json", "r") as schema_file:
@@ -130,29 +124,39 @@ def main():
         else:
             settings_path = 'settings.json'
         settings = JsonSettings(settings_path)
+        write_log_entry("Settings loaded from {0}".format(json_path), "info")
         # Setup validator, emailer and feeds.
         validator = Validator(**settings.json_data['validator'])
-        feeds = [Feed(**feed) for feed in settings.json_data['feeds']]
+        write_log_entry("Validator at endpoint {0} initialised".format(self.endpoint), "info")
+        feeds = []
+        for feed in settings.json_data['feeds']:
+            f = Feed(**feed)
+            feeds.append(f)
+            write_log_entry("Feed at endpoint {0} initialised".format(self.endpoint), "info")
         emailer = Emailer(settings.json_data['email'])
         # Start validation loop.
         while (True):
             for feed in feeds:
                 # If feed is not currently being validated, and it was last validated longer than [next_try] ago, start validation.
                 if feed.validation_start_time is None and (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
+                    write_log_entry("Sending validation request for {feedname} [{endpoint}] to {validator}".format(feedname = feed.name, endpoint = feed.endpoint, validator = self.endpoint), "info")
                     validator.start(feed)
                 # Else if validation is running and we haven't polled the validator for results for at least a minute, poll.
                 elif feed.validation_start_time is not None and (feed.last_polled_validator is None or feed.last_polled_validator < datetime.now() - timedelta(minutes = 1)):
+                    write_log_entry("Polling validation results for {feedname} [{endpoint}] from {validator}".format(feedname = feed.name, endpoint = feed.endpoint, validator = self.endpoint), "info")
                     completed, success, total_issues, response_json = validator.poll_results(feed)
                     # If the process has completed and the result was a failure, send an email notification.
-                    if completed and not success:
-                        write_log_entry("Validation for {feedname} [{endpoint}] resulted in errors, sending email to {addresses}".format(feedname = feed.name, endpoint = feed.endpoint, addresses = feed.failure_email), "info")
-                        emailer.send(
-                            feed.failure_email,
-                            u'Validation Failed For {feed} [{endpoint}] ({total_issues} Issues)'.format(
-                                feed = feed.name,
-                                endpoint = feed.endpoint,
-                                total_issues = total_issues),
-                            response_json)
+                    if completed:
+                        write_log_entry("Validation completed for {feedname} [{endpoint}]".format(feedname = feed.name, endpoint = feed.endpoint), "info")
+                        if not success:
+                            write_log_entry("Validation for {feedname} [{endpoint}] resulted in errors, sending email to {addresses}".format(feedname = feed.name, endpoint = feed.endpoint, addresses = feed.failure_email), "info")
+                            emailer.send(
+                                feed.failure_email,
+                                u'Validation Failed For {feed} [{endpoint}] ({total_issues} Issues)'.format(
+                                    feed = feed.name,
+                                    endpoint = feed.endpoint,
+                                    total_issues = total_issues),
+                                response_json)
     except Exception as e:
         message = "Unhandled exception occured: {0}".format(e)
         write_log_entry(message, "error")
