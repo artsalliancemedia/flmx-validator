@@ -42,14 +42,17 @@ class Emailer:
 
         return recipient_addrs, message
 
+    def connect(self):
+        if self.ssl_enabled:
+            self.server = smtplib.SMTP_SSL(host=self.host, port=self.port, keyfile=self.key_file, certfile=self.certificate)
+        else:
+            self.server = smtplib.SMTP(host=self.host, port=self.port)
+
     def send(self, recipients, subject, body):
         recipient_addrs, message = self.format(recipients, subject, body)
-        if self.ssl_enabled:
-            server = smtplib.SMTP_SSL(host=self.host, port=self.port, keyfile=self.key_file, certfile=self.certificate)
-        else:
-            server = smtplib.SMTP(host=self.host, port=self.port)
-        server.sendmail(self.sender, recipient_addrs, message)
-        server.quit()
+        self.connect()
+        self.server.sendmail(self.sender, recipient_addrs, message)
+        self.server.quit()
 
 # def main():
 #     options = {
