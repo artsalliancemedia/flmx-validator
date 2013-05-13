@@ -53,17 +53,3 @@ class Emailer:
         self.connect()
         self.server.sendmail(self.sender, recipient_addrs, message)
         self.server.quit()
-
-# def main():
-#     options = {
-#         "host": "aam-ex-1.aam.local",
-#         "port": 25,
-#         "sender": "flmx-validator@artsalliancemedia.com"
-#     }
-#     emailer = Emailer(options)
-#     emailer.send({'to': 'alex.latchford@artsalliancemedia.com'}, 'This is the subject!', 'This is the body!')
-
-#     print "Email sent!"
-
-# if __name__ == '__main__':
-#     main()
