@@ -1,0 +1,135 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "FLMx Validator Settings",
+    "description": "Settings for FLMx Validator application",
+    "type": "object",
+    "properties": {
+        "name": {
+            "description": "Application name",
+            "type": "string"
+        },
+        "version": {
+            "description": "Application version",
+            "type": "string"
+        },
+        "feeds": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "description": "Feed name",
+                        "type": "string"
+                    },
+                    "endpoint": {
+                        "description": "Feed endpoint",
+                        "type": "string"
+                    },
+                    "username": {
+                        "description": "Feed username",
+                        "type": "string"
+                    },
+                    "password": {
+                        "description": "Plaintext feed password",
+                        "type": "string"
+                    },
+                    "next_try": {
+                        "description": "Period between validations",
+                        "type": "string"
+                    },
+                    "failure_email": {
+                        "description": "List of email addresses to notify of failures",
+                        "type": "object",
+                        "properties": {
+                            "to": {
+                                "description": "Addresses for 'to' field",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 1
+                            },
+                            "cc": {
+                                "description": "Addresses for 'cc' field",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 1
+                            },
+                            "bcc": {
+                                "description": "Addresses for 'bcc' field",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 1
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "required": ["name", "endpoint", "username", "password", "next_try", "failure_email"],
+                "additionalProperties": false
+            }
+        },
+        "validator": {
+            "type": "object",
+            "properties": {
+                "endpoint": {
+                    "description": "Validator endpoint",
+                    "type": "string"
+                },
+                "username": {
+                    "description": "Validator username",
+                    "type": "string"
+                },
+                "password": {
+                    "description": "Plaintext validator password",
+                    "type": "string"
+                }
+            },
+            "required": ["endpoint", "username", "password"],
+            "additionalProperties": false
+        },
+        "email": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "description": "Mail server SMTP host endpoint",
+                    "type": "string"
+                },
+                "port": {
+                    "description": "Mail server port",
+                    "type": "integer"
+                },
+                "ssl": {
+                    "description": "Mail server SSL details",
+                    "type": "object",
+                    "properties": {
+                        "enabled":{
+                            "description": "Indicates whether SSL is enabled for this mail server",
+                            "type": "boolean"
+                        },
+                        "key": {
+                            "description": "Path to SSL key file",
+                            "type": "string"
+                        },
+                        "cert": {
+                            "description": "Path to SSL cert file",
+                            "type": "string"
+                        }
+                    }
+                },
+                "sender": {
+                    "description": "(spoofed) sender mail address",
+                    "type": "string"
+                }
+            },
+            "required": ["host", "port", "sender"],
+            "additionalProperties": false
+        }
+    },
+    "required": ["feeds", "validator", "email"],
+    "additionalProperties": false
+}

@@ -1,0 +1,41 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "FLM validator Results",
+    "description": "JSON results provided by FLM Validator",
+    "type": "object",
+    "properties": {
+        "test-time": {
+            "type": "integer"
+        },
+        "validation-results": {
+            "type": "object",
+            "properties":{
+                "warnings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "total-issue-count": {
+            "type": "integer"
+        },
+        "validation-type": {
+            "type": "string"
+        },
+        "url": {
+            "type": "string"
+        },
+        "test-duration": {
+            "type": "integer"
+        }
+    },
+    "required": ["test-time", "validation-type", "total-issue-count", "url", "test-duration"]
+}

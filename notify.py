@@ -8,18 +8,14 @@ class NotifyError(Exception):
 
 class Emailer:
     def __init__(self, settings):
-        # Don't open up a smtp connection if we're just running the tests.
-        if 'test' not in settings:
-            # Set up a connection to the SMTP server.
-            if 'ssl' in settings and 'enabled' in settings['ssl'] and settings['ssl']['enabled']:
-                self.server = smtplib.SMTP_SSL(host=settings['host'], port=settings['port'], keyfile=settings['ssl']['key'], certfile=settings['ssl']['cert'])
-            else:
-                self.server = smtplib.SMTP(host=settings['host'], port=settings['port'])
-
+        self.host = settings['host']
+        self.port = settings['port']
+        self.ssl_enabled = False
+        if 'ssl' in settings and 'enabled' in settings['ssl'] and settings['ssl']['enabled']:
+            self.ssl_enabled = True
+            self.key_file = settings['ssl']['key']
+            self.certificate = settings['ssl']['cert']
         self.sender = settings['sender']
-
-    def __exit__(self):
-        self.server.quit()
 
     # Put in this method so it's easier to test our code is working in an automated fashion.
     def format(self, recipients, subject, body):
@@ -46,9 +42,17 @@ class Emailer:
 
         return recipient_addrs, message
 
+    def connect(self):
+        if self.ssl_enabled:
+            self.server = smtplib.SMTP_SSL(host=self.host, port=self.port, keyfile=self.key_file, certfile=self.certificate)
+        else:
+            self.server = smtplib.SMTP(host=self.host, port=self.port)
+
     def send(self, recipients, subject, body):
         recipient_addrs, message = self.format(recipients, subject, body)
+        self.connect()
         self.server.sendmail(self.sender, recipient_addrs, message)
+        self.server.quit()
 
 # def main():
 #     options = {
