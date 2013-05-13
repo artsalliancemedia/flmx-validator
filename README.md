@@ -6,7 +6,7 @@ Takes a list of [FLM-x](http://flm.foxpico.com/) endpoints and goes through each
 
 Python 2.6.x is required, pip is useful or look in the requirements.txt to grab the dependencies.
 
-`pip -r requirements.txt`
+`pip install -r requirements.txt`
 
 ### Next Steps
 
