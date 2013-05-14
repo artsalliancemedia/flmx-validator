@@ -37,6 +37,10 @@
                         "description": "Period between validations",
                         "type": "string"
                     },
+                    "ignore_warnings": {
+                        "description": "Whether or not warnings should be ignored",
+                        "type": "boolean"
+                    },
                     "failure_email": {
                         "description": "List of email addresses to notify of failures",
                         "type": "object",
@@ -69,7 +73,7 @@
                         "additionalProperties": false
                     }
                 },
-                "required": ["name", "endpoint", "username", "password", "next_try", "failure_email"],
+                "required": ["name", "endpoint", "username", "password", "next_try", "ignore_warnings", "failure_email"],
                 "additionalProperties": false
             }
         },
