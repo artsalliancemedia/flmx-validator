@@ -58,13 +58,16 @@ class Validator(object):
             validation_finished = True
             feed.last_validated = datetime.now()
             feed.validation_start_time = None
-            total_issues = int(response_json['total-issue-count'])
+            if feed.ignore_warnings:
+                total_issues = len(response_json['validation-results']['errors']) if 'errors' in response_json['validation-results'] else 0
+            else:
+                total_issues = int(response_json['total-issue-count'])
 
         return validation_finished, total_issues, response_json
 
 class Feed(object):
     """Represents a Feed as stored in the json settings file"""
-    def __init__(self, name, endpoint, username, password, next_try, failure_email):
+    def __init__(self, name, endpoint, username, password, next_try, ignore_warnings, failure_email):
         super(Feed, self).__init__()
         self.last_validated = None
         self.validation_start_time = None
@@ -74,6 +77,7 @@ class Feed(object):
         self.username = username
         self.password = password
         self.failure_email = failure_email
+        self.ignore_warnings = ignore_warnings
 
         result = match('^(\d+)([m|M|h|H|d|D])$', next_try)
         if result:
