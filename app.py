@@ -58,7 +58,7 @@ class Validator(object):
             feed.validation_start_time = None
 
             if feed.ignore_warnings:
-                total_issues = 'errors' in response_json['validation-results'] and len(response_json['validation-results']['errors']) or 0
+                total_issues = len(response_json['validation-results']['errors']) if 'errors' in response_json['validation-results'] else 0
             else:
                 total_issues = int(response_json['total-issue-count'])
 
@@ -115,8 +115,8 @@ class JsonSettings(object):
 
 def main():
     # Deal with the command line arguments
-    settings_path = len(sys.argv) >= 2 and sys.argv[1] or 'settings.json'
-    log_path = len(sys.argv) >= 3 and sys.argv[2] or 'flmx-validator.log'
+    settings_path = sys.argv[1] if len(sys.argv) >= 2 else 'settings.json'
+    log_path = sys.argv[2] if len(sys.argv) >= 3 else 'flmx-validator.log'
 
     # First off set up the logging.
     logger = logging.getLogger('flmx-logger')
@@ -166,7 +166,7 @@ def main():
                                     feed = feed.name,
                                     endpoint = feed.endpoint,
                                     total_issues = total_issues,
-                                    issues = total_issues > 1 and "Issues" or "Issue")
+                                    issues = "Issues" if total_issues > 1 else "Issue")
                             body = json.dumps(response_json, indent=4, separators=(',', ': '), sort_keys=True)
                             emailer.send(feed.failure_email, title, body)
 
