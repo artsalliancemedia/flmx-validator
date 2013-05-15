@@ -15,7 +15,7 @@ Take a copy of `settings-template.json`, name it `settings.json` and fill out th
 By default, the application will use this `settings.json` file, however you can override this by providing a file path as a command line argument.
 
 To start the app run:
-`python app.py </example/required/settings.json> [/example/optional/log.out]`
+`python app.py [/example/optional/settings.json] [/example/optional/log.out]`
 
 ### Tests
 
