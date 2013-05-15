@@ -52,11 +52,11 @@ class Validator(object):
         with open("schemas/results.json", "r") as schema_file:
             jsonschema.validate(response_json, json.load(schema_file))
 
-        feed.last_polled_validator = datetime.now()
         if datetime.fromtimestamp(response_json['test-time']) > feed.validation_start_time:
             validation_finished = True
             feed.last_validated = datetime.now()
             feed.validation_start_time = None
+
             if feed.ignore_warnings:
                 total_issues = len(response_json['validation-results']['errors']) if 'errors' in response_json['validation-results'] else 0
             else:
@@ -70,7 +70,6 @@ class Feed(object):
         super(Feed, self).__init__()
         self.last_validated = None
         self.validation_start_time = None
-        self.last_polled_validator = None
         self.name = name
         self.endpoint = endpoint
         self.username = username
@@ -116,8 +115,8 @@ class JsonSettings(object):
 
 def main():
     # Deal with the command line arguments
-    settings_path = len(sys.argv) >= 2 and sys.argv[1] or 'settings.json'
-    log_path = len(sys.argv) >= 3 and sys.argv[2] or 'flmx-validator.log'
+    settings_path = sys.argv[1] if len(sys.argv) >= 2 else 'settings.json'
+    log_path = sys.argv[2] if len(sys.argv) >= 3 else 'flmx-validator.log'
 
     # First off set up the logging.
     logger = logging.getLogger('flmx-logger')
@@ -149,12 +148,12 @@ def main():
         while (True):
             for feed in feeds:
                 # If feed is not currently being validated, and it was last validated longer than [next_try] ago, start validation.
-                if feed.validation_start_time is None and (feed.last_validated is None or feed.last_validated + feed.next_try < datetime.now()):
+                if feed.validation_start_time is None and (feed.last_validated is None or datetime.now() > feed.last_validated + feed.next_try):
                     logger.info("Sending validation request for {0} [{1}] to {2}".format(feed.name, feed.endpoint, validator.endpoint))
                     validator.start(feed)
 
-                # Else if validation is running and we haven't polled the validator for results for at least a minute, poll.
-                elif feed.validation_start_time is not None and (feed.last_polled_validator is None or feed.last_polled_validator < datetime.now() - timedelta(minutes = 1)):
+                # Else if the validation must have started
+                elif feed.validation_start_time is not None:
                     logger.info("Polling validation results for {0} [{1}] from {2}".format(feed.name, feed.endpoint, validator.endpoint))
                     completed, success, total_issues, response_json = validator.poll_results(feed)
 
@@ -167,7 +166,7 @@ def main():
                                     feed = feed.name,
                                     endpoint = feed.endpoint,
                                     total_issues = total_issues,
-                                    issues = total_issues > 1 and "Issues" or "Issue")
+                                    issues = "Issues" if total_issues > 1 else "Issue")
                             body = json.dumps(response_json, indent=4, separators=(',', ': '), sort_keys=True)
                             emailer.send(feed.failure_email, title, body)
 
@@ -175,7 +174,7 @@ def main():
                         else:
                             logger.info("Validation completed successfully for {0} [{1}]".format(feed.name, feed.endpoint))
 
-            time.sleep(60)
+            time.sleep(300) # Wait for a bit to try again, hopefully this should account for most differences in time between the executing and validation server too.
 
     except Exception as e:
         logger.debug("Unhandled exception occured: {0}".format(e))
