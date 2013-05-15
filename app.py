@@ -5,6 +5,14 @@ from datetime import timedelta, datetime
 import requests, jsonschema
 from notify import Emailer
 
+logger = logging.getLogger('flmx-logger')
+logger.setLevel(logging.DEBUG)
+
+handler = logging.handlers.RotatingFileHandler('flmx-validator.log', maxBytes=104857600, backupCount=3)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 class Validator(object):
     """Represents a Validator as stored in the json settings file"""
     def __init__(self, endpoint, username, password):
@@ -119,15 +127,6 @@ def main():
         # Load json settings, either from command line argument or default location.
         settings_path = len(sys.argv) >= 2 and sys.argv[1] or 'settings.json'
         settings = JsonSettings(settings_path)
-
-        logger = logging.getLogger('flmx-logger')
-        logger.setLevel(logging.DEBUG)
-
-        file_name = 'log_file' in settings.json_data and settings.json_data['log_file'] or 'flmx-validator.log'
-        handler = logging.handlers.RotatingFileHandler(file_name, maxBytes=104857600, backupCount=3)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
 
         logger.info("Settings loaded from {0}".format(settings_path))
 

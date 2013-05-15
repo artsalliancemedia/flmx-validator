@@ -28,6 +28,5 @@
 			"cert": "<path to cert file>"
 		},
 		"sender": "flmx-validator@example.com"
-	},
-	"log_file": "flmx-validator.log"
+	}
 }
