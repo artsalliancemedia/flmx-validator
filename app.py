@@ -155,7 +155,7 @@ def main():
                 # Else if the validation must have started
                 elif feed.validation_start_time is not None:
                     # Check to make sure we haven't hit some weird behaviour and have been stuck polling for > 6 hours.
-                    if datetime.now() > feed.last_validated + datetime.timedelta(hours=6):
+                    if datetime.now() > feed.last_validated + timedelta(hours=6):
                         # If we have then let's just kick off another validation request.
                         feed.validation_start_time = None
                         logger.debug("Have been polling {0} for > 6 hours, must be a problem lets rinse and repeat.".format(feed.name))
