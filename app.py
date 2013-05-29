@@ -38,7 +38,7 @@ class Validator(object):
             "json": 1,
         }
 
-        response = requests.get(self.endpoint, auth = (self.username, self.password), params = payload)
+        response = requests.get(self.endpoint, auth = (self.username, self.password), params = payload, timeout = 10)
         if response.status_code == 200:
             validation_finished, total_issues, response_json = self.handle_results_response(feed, response.text)
 
@@ -173,6 +173,13 @@ def main():
                             logger.info("Email sent to {0}".format(feed.failure_email))
                         else:
                             logger.info("Validation completed successfully for {0} [{1}]".format(feed.name, feed.endpoint))
+
+                    # Check to make sure we haven't hit some weird behaviour and have been stuck polling for > 6 hours.
+                    elif datetime.now() > feed.last_validated + timedelta(hours=6):
+                        # If we have then let's just kick off another validation request.
+                        feed.validation_start_time = None
+                        logger.debug("Have been polling {0} for > 6 hours, must be a problem lets rinse and repeat.".format(feed.name))
+                        break
 
             time.sleep(300) # Wait for a bit to try again, hopefully this should account for most differences in time between the executing and validation server too.
 
