@@ -1,4 +1,4 @@
-VERSION = "1.0.0"
+VERSION = "1.1"
 
 import os, sys, time, traceback, json, re, logging, logging.handlers
 from datetime import timedelta, datetime
@@ -100,7 +100,7 @@ class JsonSettings(object):
         self.validate()
 
     def validate(self):
-        with open("schemas/settings.json", "r") as schema_file:
+        with open("{0}schemas/settings.json".format(os.path.dirname(os.path.realpath(__file__))), "r") as schema_file:
             jsonschema.validate(self.json_data, json.load(schema_file))
 
     def load(self, json_path):
@@ -115,8 +115,9 @@ class JsonSettings(object):
 
 def main():
     # Deal with the command line arguments
-    settings_path = sys.argv[1] if len(sys.argv) >= 2 else 'settings.json'
-    log_path = sys.argv[2] if len(sys.argv) >= 3 else 'flmx-validator.log'
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    settings_path = sys.argv[1] if len(sys.argv) >= 2 else '{0}/settings.json'.format(current_dir)
+    log_path = sys.argv[2] if len(sys.argv) >= 3 else '{0}/flmx-validator.log'.format(current_dir)
 
     # First off set up the logging.
     logger = logging.getLogger('flmx-logger')
