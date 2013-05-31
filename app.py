@@ -49,7 +49,7 @@ class Validator(object):
         total_issues = 0
         response_json = json.loads(response)
 
-        with open("schemas/results.json", "r") as schema_file:
+        with open("{0}/schemas/results.json".format(os.path.dirname(os.path.realpath(__file__))), "r") as schema_file:
             jsonschema.validate(response_json, json.load(schema_file))
 
         if datetime.fromtimestamp(response_json['test-time']) > feed.validation_start_time:
@@ -100,7 +100,7 @@ class JsonSettings(object):
         self.validate()
 
     def validate(self):
-        with open("{0}schemas/settings.json".format(os.path.dirname(os.path.realpath(__file__))), "r") as schema_file:
+        with open("{0}/schemas/settings.json".format(os.path.dirname(os.path.realpath(__file__))), "r") as schema_file:
             jsonschema.validate(self.json_data, json.load(schema_file))
 
     def load(self, json_path):
