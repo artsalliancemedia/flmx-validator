@@ -176,7 +176,7 @@ def main():
                             logger.info("Validation completed successfully for {0} [{1}]".format(feed.name, feed.endpoint))
 
                     # Check to make sure we haven't hit some weird behaviour and have been stuck polling for > 6 hours.
-                    elif datetime.now() > feed.last_validated + timedelta(hours=6):
+                    elif feed.last_validated is not None and datetime.now() > feed.last_validated + timedelta(hours=6):
                         # If we have then let's just kick off another validation request.
                         feed.validation_start_time = None
                         logger.debug("Have been polling {0} for > 6 hours, must be a problem lets rinse and repeat.".format(feed.name))
